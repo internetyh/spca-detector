@@ -1,39 +1,34 @@
 import requests
 from bs4 import BeautifulSoup as BS
 
-animals = ["all", "cats", "dogs", "small animals", "farm animals"]
-locations = ["ashburton-centre", "auckland-centre", "hobsonville-center"]
+def get_animals(animal, location):
+    url = f"https://www.spca.nz/adopt?species={animal}&centres={location}&pageNum=1"
 
-animal = animals[1]
-location = locations[1]
+    resp = requests.get(url)
+    soup = BS(resp.text, "html.parser")
 
-url = f"https://www.spca.nz/adopt?species={animal}&centres={location}&pageNum=1"
+    animals = soup.find_all("li", class_="card-item card-item--adopt js-card-item--adopt grid-col m-4 xl-2b")
 
-resp = requests.get(url)
-soup = BS(resp.text, "html.parser")
+    animal_list = list()
+    for aanimal in animals:
+        name = aanimal.find("h3", class_="card-title").text
+        breed = aanimal.find("h4", class_="card-subtitle card-subtitle--gender-breed").text
+        age = aanimal.find("h4", class_="card-subtitle--age").text
+        animal_list.append([name, breed, age])
 
-cats = soup.find_all("li", class_="card-item card-item--adopt js-card-item--adopt grid-col m-4 xl-2b")
+    with open(f'{animal}/{location}/old.txt', 'r') as f:
+        old_animal_list = f.read().splitlines()
 
-cat_list = list()
-for cat in cats:
-    name = cat.find("h3", class_="card-title").text
-    breed = cat.find("h4", class_="card-subtitle card-subtitle--gender-breed").text
-    age = cat.find("h4", class_="card-subtitle--age").text
-    cat_list.append([name, breed, age])
+    animal_string = '\n'.join([f"{cat[0]} - {cat[1]} - {cat[2]}" for cat in animal_list])
+    new_animal_list = animal_string.split('\n')
 
-with open('cats/old.txt', 'r') as f:
-    old_cat_list = f.read().splitlines()
+    difference = [cat for cat in new_animal_list if cat not in old_animal_list]
 
-cat_string = '\n'.join([f"{cat[0]} - {cat[1]} - {cat[2]}" for cat in cat_list])
-new_cat_list = cat_string.split('\n')
+    with open(f'{animal}/{location}/new.txt', 'w') as f:
+        f.write(animal_string)
 
-difference = [cat for cat in new_cat_list if cat not in old_cat_list]
+    with open(f'{animal}/{location}/old.txt', 'w') as f:
+        f.write(animal_string)
 
-with open('cats/new.txt', 'w') as f:
-    f.write(cat_string)
-
-with open('cats/old.txt', 'w') as f:
-    f.write(cat_string)
-
-with open('cats/difference.txt', 'w') as f:
-    f.write('\n'.join(difference))
+    with open(f'{animal}/{location}/difference.txt', 'w') as f:
+        f.write('\n'.join(difference))
